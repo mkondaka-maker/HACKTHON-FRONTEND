@@ -1,0 +1,8 @@
+streamlit
+pandas
+google-genai
+openai
+anthropic
+python-dotenv
+reportlab
+matplotlib

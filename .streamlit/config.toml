@@ -1,0 +1,10 @@
+# FinSight AI — frontend theme only (no behavior change).
+# Warm cream editorial workspace: light base so native widgets,
+# dropdowns, sliders and Altair charts all render light automatically.
+[theme]
+base = "light"
+primaryColor = "#2F6FED"
+backgroundColor = "#FEFAF3"
+secondaryBackgroundColor = "#F1EADD"
+textColor = "#2F2C25"
+font = "sans serif"

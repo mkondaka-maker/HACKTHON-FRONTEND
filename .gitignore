@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.log
+cloudflared
+*.tgz
+app.py.before_*
+*.before_*_patch
+*.backup
+chat_*.txt
+.env
+.ipynb_checkpoints/
