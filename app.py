@@ -660,18 +660,38 @@ st.markdown(
         font-family: var(--fs-sans);
         font-size: 13.5px;
         font-weight: 500;
-        color: var(--fs-muted);
+        color: var(--fs-muted) !important;
         border-radius: 999px !important;
         padding: 7px 16px !important;
         margin-right: 2px;
+        border: 1px solid transparent !important;
+    }
+    button[data-testid="stTab"] p,
+    button[data-testid="stTab"] div,
+    button[data-testid="stTab"] span {
+        color: var(--fs-muted) !important;
     }
     button[data-testid="stTab"]:hover {
-        color: var(--fs-ink);
-        background: rgba(47, 44, 37, 0.05);
+        color: var(--fs-ink) !important;
+        background: rgba(47, 44, 37, 0.08) !important;
+    }
+    button[data-testid="stTab"]:hover p,
+    button[data-testid="stTab"]:hover div,
+    button[data-testid="stTab"]:hover span {
+        color: var(--fs-ink) !important;
     }
     button[data-testid="stTab"][aria-selected="true"] {
-        background: var(--fs-ink) !important;
-        color: var(--fs-cream) !important;
+        background: #EAE1D0 !important;
+        color: var(--fs-ink) !important;
+        border: 1px solid #D4C7AF !important;
+        font-weight: 600 !important;
+        box-shadow: 0 1px 3px rgba(47, 44, 37, 0.1) !important;
+    }
+    button[data-testid="stTab"][aria-selected="true"] p,
+    button[data-testid="stTab"][aria-selected="true"] div,
+    button[data-testid="stTab"][aria-selected="true"] span {
+        color: var(--fs-ink) !important;
+        font-weight: 600 !important;
     }
     [data-testid="stTabPanel"] {
         animation: fs-rise 0.45s ease both;
@@ -818,8 +838,12 @@ st.markdown(
         color: var(--fs-faint);
         margin-bottom: 4px;
     }
-    .fs-ai > .fs-role {
+    .fs-role-you {
+        color: var(--fs-ink);
+    }
+    .fs-role-ai {
         color: var(--fs-accent);
+        font-weight: 600;
     }
 
     /* ---------- captions / metadata ---------- */
@@ -4476,7 +4500,8 @@ with tab_benchmark:
         unsafe_allow_html=True
     )
 
-    map_data = build_financial_map(df, selected_company, selected_year)
+    financial_map_df = calculate_financial_metrics(df.copy())
+    map_data = build_financial_map(financial_map_df, selected_company, selected_year)
 
     st.caption(
         "AI-powered view of how key financial metrics connect and influence overall performance."
@@ -5722,10 +5747,8 @@ with tab_chat:
 
                     if ai_state == "SUCCESS":
                         st.markdown(
-                            '<span class="fs-role fs-role-ai">AI ANSWER</span>',
-                        )
-                        st.markdown(
-                            ai_explanation.get("response", "")
+                            '<span class="fs-role fs-role-ai">AI ANSWER</span><br>'
+                            f"{ai_explanation.get('response', '')}",
                         )
                         st.caption(
                             f"AI answer grounded in engine values "

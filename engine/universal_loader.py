@@ -183,11 +183,25 @@ def load_raw_file(uploaded_file):
     name = getattr(uploaded_file, "name", "").lower()
 
     if name.endswith(".xlsx") or name.endswith(".xls"):
-        excel = pd.ExcelFile(uploaded_file)
+        try:
+            excel = pd.ExcelFile(uploaded_file)
+        except ImportError as exc:
+            raise ImportError(
+                "Excel support requires the 'openpyxl' package, which is "
+                "listed in requirements.txt. Install it with "
+                "'pip install openpyxl' and retry the upload."
+            ) from exc
         sheets = {}
 
         for sheet in excel.sheet_names:
-            temp = pd.read_excel(uploaded_file, sheet_name=sheet)
+            try:
+                temp = pd.read_excel(uploaded_file, sheet_name=sheet)
+            except ImportError as exc:
+                raise ImportError(
+                    "Excel support requires the 'openpyxl' package, which is "
+                    "listed in requirements.txt. Install it with "
+                    "'pip install openpyxl' and retry the upload."
+                ) from exc
             if not temp.empty:
                 sheets[sheet] = temp
 

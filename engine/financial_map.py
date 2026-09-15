@@ -34,57 +34,72 @@ def build_financial_map(df, company=None, year=None):
     # -----------------------------------------
     # Financial metric nodes
     # -----------------------------------------
+    # Harden against partial/custom uploads: a core column may be
+    # absent from the frame. Derive net margin when possible
+    # (net_income / revenue * 100, same as dashboard.py); otherwise
+    # skip the node so the map degrades gracefully instead of
+    # raising KeyError.
 
-    nodes = [
-        {
-            "id": "revenue",
-            "label": "Revenue",
-            "value": float(row["revenue"]),
-            "unit": "USD M"
-        },
-        {
-            "id": "gross_profit",
-            "label": "Gross Profit",
-            "value": float(row["gross_profit"]),
-            "unit": "USD M"
-        },
-        {
-            "id": "ebitda",
-            "label": "EBITDA",
-            "value": float(row["ebitda"]),
-            "unit": "USD M"
-        },
-        {
-            "id": "net_income",
-            "label": "Net Income",
-            "value": float(row["net_income"]),
-            "unit": "USD M"
-        },
-        {
-            "id": "operating_cash",
-            "label": "Operating Cash Flow",
-            "value": float(row["cash_flow_from_operating"]),
-            "unit": "USD M"
-        },
-        {
-            "id": "current_ratio",
-            "label": "Current Ratio",
-            "value": float(row["current_ratio"]),
-            "unit": "x"
-        },
-        {
-            "id": "debt_equity",
-            "label": "Debt / Equity",
-            "value": float(row["debt_equity_ratio"]),
-            "unit": "x"
-        },
-        {
-            "id": "net_margin",
-            "label": "Net Profit Margin",
-            "value": float(row["net_profit_margin"]),
-            "unit": "%"
-        }
+    def _safe_value(frame_row, field):
+        if field not in frame_row.index:
+            return None
+        try:
+            value = float(frame_row[field])
+        except (TypeError, ValueError):
+            return None
+        if pd.isna(value):
+            return None
+        return value
+
+    def _derived_net_margin(frame_row):
+        margin = _safe_value(frame_row, "net_profit_margin")
+        if margin is not None:
+            return margin
+        net_income = _safe_value(frame_row, "net_income")
+        revenue = _safe_value(frame_row, "revenue")
+        if net_income is None or revenue is None or revenue == 0:
+            return None
+        return float(net_income) / float(revenue) * 100
+
+    _core_specs = [
+        ("revenue", "Revenue", "revenue", "USD M", None),
+        ("gross_profit", "Gross Profit", "gross_profit", "USD M", None),
+        ("ebitda", "EBITDA", "ebitda", "USD M", None),
+        ("net_income", "Net Income", "net_income", "USD M", None),
+        (
+            "operating_cash",
+            "Operating Cash Flow",
+            "cash_flow_from_operating",
+            "USD M",
+            None,
+        ),
+        ("current_ratio", "Current Ratio", "current_ratio", "x", None),
+        (
+            "debt_equity",
+            "Debt / Equity",
+            "debt_equity_ratio",
+            "x",
+            None,
+        ),
+        ("net_margin", "Net Profit Margin", "net_profit_margin", "%", True),
     ]
+
+    nodes = []
+    for _node_id, _label, _field, _unit, _derive in _core_specs:
+        if _derive:
+            _value = _derived_net_margin(row)
+        else:
+            _value = _safe_value(row, _field)
+        if _value is None:
+            continue
+        nodes.append(
+            {
+                "id": _node_id,
+                "label": _label,
+                "value": _value,
+                "unit": _unit,
+            }
+        )
 
     # -----------------------------------------
     # Optional return metrics
@@ -99,10 +114,13 @@ def build_financial_map(df, company=None, year=None):
     for metric_id, metric_label in optional_return_metrics:
 
         if metric_id in row.index:
+            _opt_value = _safe_value(row, metric_id)
+            if _opt_value is None:
+                continue
             nodes.append({
                 "id": metric_id,
                 "label": metric_label,
-                "value": float(row[metric_id]),
+                "value": _opt_value,
                 "unit": "%"
             })
 
@@ -153,6 +171,17 @@ def build_financial_map(df, company=None, year=None):
                 "target": metric_id,
                 "relationship": f"Net Income influences {metric_id.upper()}"
             })
+
+    # Drop edges that reference skipped (unavailable) nodes so a
+    # partial upload degrades gracefully instead of rendering
+    # dangling relationships.
+    _available_ids = {node["id"] for node in nodes}
+    edges = [
+        edge
+        for edge in edges
+        if edge["source"] in _available_ids
+        and edge["target"] in _available_ids
+    ]
 
     return {
         "company": company,

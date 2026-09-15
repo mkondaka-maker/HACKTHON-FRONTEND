@@ -9,3 +9,6 @@ app.py.before_*
 chat_*.txt
 .env
 .ipynb_checkpoints/
+.venv/
+*.zip
+
